@@ -1,5 +1,6 @@
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -25,8 +26,9 @@ public class merge {
         Job job = Job.getInstance(conf, "mergeFile");
         job.setJarByClass(merge.class);
         job.setMapperClass(merge.mergeMap.class);
-        job.setCombinerClass(merge.mergeReduce.class);
         job.setReducerClass(merge.mergeReduce.class);
+        job.setMapOutputKeyClass(LongWritable.class);
+        job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
 
@@ -34,6 +36,7 @@ public class merge {
             FileInputFormat.addInputPath(job, new Path(otherArgs[i]));
         }
         FileOutputFormat.setOutputPath(job, new Path(otherArgs[otherArgs.length - 1]));
+        Path path = new Path(otherArgs[1]);
         System.exit(job.waitForCompletion(true) ? 0:1);
 
     }
@@ -41,19 +44,16 @@ public class merge {
     public static class mergeMap extends Mapper<Object, Text, Text, Text> {
         private Text line = new Text();
 
-        public mergeMap(Text line) {
-            this.line = line;
+        public mergeMap() {
         }
 
-        public void MergeMap(Object key, Text value, Mapper<Object, Text, Text, Text>.Context context) throws IOException, InterruptedException {
-            context.write(value, new Text(""));
+        public void MergeMap(Object key, Text value, Context context) throws IOException, InterruptedException {
+            this.line = value;
+            context.write(line, new Text(""));
         }
     }
 
     public static class mergeReduce extends Reducer<Text, Text, Text, Text> {
-        public mergeReduce() {
-        }
-
         public void MergeReducer(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             context.write(key, new Text(""));
         }
